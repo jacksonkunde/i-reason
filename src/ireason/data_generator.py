@@ -307,28 +307,38 @@ class DataGenerator:
             higher_layer_nodes = layers[i]
             connected_nodes = {}
             for j in range(i + 1, num_layers):
+                print(i, j)
                 lower_layer_nodes = layers[j]
                 lower_layer_category = structure_graph.nodes[lower_layer_nodes[0]][
                     "category"
                 ]
                 for node in higher_layer_nodes:
                     # Check if the node is connected to any node in the lower layer
-                    if not connected_nodes.get(node, None):
-                        connected_nodes[node] = structure_graph.neighbors(node)
-                    else:
-                        connected_extends = []
-                        for n in connected_nodes[node]:
-                            ce = [
-                                neighbor
-                                for neighbor in structure_graph.neighbors(n)
-                                if neighbor in lower_layer_nodes
-                            ]
-                            connected_extends.extend(ce)
-                        connected_nodes[node] = connected_extends
-                    if connected_nodes[node]:
+                    reachable_nodes = list(
+                        nx.single_source_shortest_path_length(
+                            structure_graph, node
+                        ).keys()
+                    )
+                    # if not connected_nodes.get(node, None):
+                    #     connected_nodes[node] = structure_graph.neighbors(node)
+                    if len(reachable_nodes) > 1:
+                        print(reachable_nodes)
+                        # else:
+                        #     connected_extends = []
+                        #     for n in connected_nodes[node]:
+                        #         ce = [
+                        #             neighbor
+                        #             for neighbor in structure_graph.neighbors(n)
+                        #             if neighbor in lower_layer_nodes
+                        #         ]
+                        #         connected_extends.extend(ce)
+                        #     connected_nodes[node] = connected_extends
+                        # if connected_nodes[node]:
                         # Create an abstract parameter for this node and lower layer
                         param_name = f"Abstract_{node}_Layer{j}"
                         english_name = f"{structure_graph.nodes[node]['english_name']}'s {lower_layer_category}"
+                        print(english_name)
+                        print(english_name)
                         G_a.add_node(
                             param_name,
                             difficulty_level=j - i,
@@ -338,12 +348,17 @@ class DataGenerator:
                             node=node,
                         )
                         # The abstract parameter depends on its instance parameters (from the lower layer)
-                        for child_node in connected_nodes[node]:
-                            # Add node
-                            node_attributes = structure_graph.nodes[child_node]
-                            G_a.add_node(child_node, **node_attributes)
-                            # Add edge to abstract param
-                            G_a.add_edge(child_node, param_name)
+                        # for child_node in connected_nodes[node]:
+                        for child_node in reachable_nodes:
+                            if (
+                                structure_graph.nodes[child_node]["layer"]
+                                > structure_graph.nodes[node]["layer"]
+                            ):
+                                # Add node
+                                node_attributes = structure_graph.nodes[child_node]
+                                G_a.add_node(child_node, **node_attributes)
+                                # Add edge to abstract param
+                                G_a.add_edge(child_node, param_name)
 
         return G_a
 
