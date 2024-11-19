@@ -188,11 +188,14 @@ class DataGenerator:
 
         structure_graph = nx.Graph()
 
-        # Add nodes to the graph
+        # Randomly select categories for each layer
+        categories = self._select_categories(num_layers)
+
         for i, layer_nodes in enumerate(layers):
             layer_number = i + 1  # Layers are 1-indexed
+            category = categories[i]
             for node in layer_nodes:
-                structure_graph.add_node(node, layer=layer_number)
+                structure_graph.add_node(node, layer=layer_number, category=category)
 
         # Create edges between adjacent layers
         for i in range(1, num_layers):
@@ -217,6 +220,23 @@ class DataGenerator:
 
         return structure_graph, layers
 
+    def _select_categories(self, num_layers: int) -> List[str]:
+        """
+        Selects categories for each layer from hierarchical categories.
+
+        :param num_layers: Number of layers.
+        :return: A list of categories for each layer.
+        """
+        # Randomly select a categorization
+        categorization = random.choice(self.hierarchical_categories)
+
+        # Randomly select consecutive categories matching the number of layers
+        max_start_index = len(categorization) - num_layers
+        start_index = random.randint(0, max_start_index)
+        selected_categories = categorization[start_index : start_index + num_layers]
+
+        return selected_categories
+
     def _assign_names(
         self, structure_graph: nx.Graph, layers: List[List[str]]
     ) -> nx.Graph:
@@ -227,75 +247,132 @@ class DataGenerator:
         :param layers: A list of layers with node names.
         :return: The updated structure graph with English names assigned.
         """
-        # Randomly select a categorization
-        categorization = random.choice(self.hierarchical_categories)
+        # Map to keep track of used names in each layer to ensure uniqueness
+        used_names_per_layer: Dict[int, Set[str]] = {}
 
-        # Randomly select consecutive categories matching the number of layers
-        num_layers = len(layers)
-
-        max_start_index = len(categorization) - num_layers
-        start_index = random.randint(0, max_start_index)
-        selected_categories = categorization[start_index : start_index + num_layers]
-
-        # Randomly select subcategories and items for each layer
-        subcategory_choice = {}
-        for category in selected_categories:
-            subcategories = list(self.category_items.get(category, {}).keys())
-            if subcategories:
-                subcategory_choice[category] = random.choice(subcategories)
-            else:
-                subcategory_choice[category] = (
-                    category  # Default to category name if no subcategories
-                )
-
-        # Map node names to English item names and preserve layer attribute
-        mapping = {}
+        # Assign English names to each node in the structure graph
         for i, layer_nodes in enumerate(layers):
-            category = selected_categories[i]
-            subcategory = subcategory_choice[category]
-            items = self.category_items.get(category, {}).get(subcategory, [])
-            if not items:
-                items = [f"{category} Item {j + 1}" for j in range(100)]
-            layer_size = len(layer_nodes)
-            selected_items = random.sample(items, layer_size)
-            for node_name, item_name in zip(layer_nodes, selected_items):
-                # Update mapping
-                mapping[node_name] = item_name
-                layer_number = structure_graph.nodes[node_name]["layer"]
-                structure_graph.nodes[node_name]["english_name"] = item_name
-                structure_graph.nodes[node_name]["layer"] = layer_number
+            layer_number = i + 1  # Layers are 1-indexed
+            category = structure_graph.nodes[layer_nodes[0]]["category"]
+            used_names = set()
+            used_names_per_layer[layer_number] = used_names
 
-        # Relabel nodes using the mapping
-        structure_graph = nx.relabel_nodes(structure_graph, mapping, copy=False)
+            # Get items for the category
+            items = self.category_items.get(category, [])
+            if not items:
+                items = [f"{category} {j + 1}" for j in range(100)]
+            else:
+                # Flatten subcategories if necessary
+                if isinstance(items, dict):
+                    items = [item for sublist in items.values() for item in sublist]
+
+            # Shuffle items to randomize selection
+            random.shuffle(items)
+            item_index = 0
+
+            for node in layer_nodes:
+                # Find an unused name
+                while item_index < len(items):
+                    item_name = items[item_index]
+                    item_index += 1
+                    if item_name not in used_names:
+                        used_names.add(item_name)
+                        break
+                else:
+                    # If we run out of unique names, generate a new one
+                    item_name = f"{category} {len(used_names) + 1}"
+                    used_names.add(item_name)
+
+                # Assign the English name to the node
+                structure_graph.nodes[node]["english_name"] = item_name
 
         return structure_graph
 
-    def visualize_structure_graph(self):
+    def _generate_abstract_parameter_graph(
+        self, structure_graph: nx.Graph, layers: List[List[str]]
+    ) -> nx.Graph:
+        """
+        Generates the abstract parameter graph G_a based on the structure graph layers.
+
+        :param structure_graph: The undirected structure graph G_s.
+        :param layers: A list of layers with node names from the structure graph.
+        :return: The abstract parameter graph G_a.
+        """
+        G_a = nx.DiGraph()
+
+        num_layers = len(layers)
+
+        # For each higher layer node, create abstract parameters for connected lower layers
+        for i in range(num_layers - 1):  # For layers 0 to num_layers - 2
+            higher_layer_nodes = layers[i]
+            connected_nodes = {}
+            for j in range(i + 1, num_layers):
+                print(i, j)
+                lower_layer_nodes = layers[j]
+                lower_layer_category = structure_graph.nodes[lower_layer_nodes[0]][
+                    "category"
+                ]
+                for node in higher_layer_nodes:
+                    # Check if the node is connected to any node in the lower layer
+                    if not connected_nodes.get(node, None):
+                        connected_nodes[node] = structure_graph.neighbors(node)
+                    else:
+                        connected_extends = []
+                        for n in connected_nodes[node]:
+                            ce = [
+                                neighbor
+                                for neighbor in structure_graph.neighbors(n)
+                                if neighbor in lower_layer_nodes
+                            ]
+                            connected_extends.extend(ce)
+                        connected_nodes[node] = connected_extends
+                    if connected_nodes[node]:
+                        # Create an abstract parameter for this node and lower layer
+                        param_name = f"Abstract_{node}_Layer{j}"
+                        english_name = f"{structure_graph.nodes[node]['english_name']}'s {lower_layer_category}"
+                        G_a.add_node(
+                            param_name,
+                            difficulty_level=j - i,
+                            category=lower_layer_category,
+                            english_name=english_name,
+                            layers=[i + 1, 1 + j],
+                            node=node,
+                        )
+                        # The abstract parameter depends on its instance parameters (from the lower layer)
+                        for child_node in connected_nodes:
+                            G_a.add_edge(child_node, param_name)
+
+        return G_a
+
+    # Visualization
+
+    def visualize_structure_graph(self, structure_graph):
         """
         Visualizes the structure graph G_s.
         """
-        pos = nx.multipartite_layout(self.structure_graph, subset_key="layer")
+        pos = nx.multipartite_layout(structure_graph, subset_key="layer")
         plt.figure(figsize=(12, 8))
         node_colors = []
-        for node in self.structure_graph.nodes:
-            if self._is_abstract(node):
-                node_colors.append("lightblue")
-            else:
-                node_colors.append("lightgreen")
+        for node in structure_graph.nodes:
+            node_colors.append("lightblue")
+            # if self._is_abstract(node):
+            #     node_colors.append("lightblue")
+            # else:
+            #     node_colors.append("lightgreen")
         nx.draw_networkx_nodes(
-            self.structure_graph, pos, node_color=node_colors, node_size=800
+            structure_graph, pos, node_color=node_colors, node_size=800
         )
         nx.draw_networkx_labels(
-            self.structure_graph,
+            structure_graph,
             pos,
             labels={
-                node: self.structure_graph.nodes[node]["english_name"]
-                for node in self.structure_graph.nodes
+                node: structure_graph.nodes[node]["english_name"]
+                for node in structure_graph.nodes
             },
             font_family="Times New Roman",
             font_size=10,
         )
-        nx.draw_networkx_edges(self.structure_graph, pos)
+        nx.draw_networkx_edges(structure_graph, pos)
         plt.title("Structure Graph $G_s$", fontsize=14, fontweight="bold")
         plt.axis("off")
         plt.show()
