@@ -307,7 +307,6 @@ class DataGenerator:
             higher_layer_nodes = layers[i]
             connected_nodes = {}
             for j in range(i + 1, num_layers):
-                print(i, j)
                 lower_layer_nodes = layers[j]
                 lower_layer_category = structure_graph.nodes[lower_layer_nodes[0]][
                     "category"
@@ -339,7 +338,11 @@ class DataGenerator:
                             node=node,
                         )
                         # The abstract parameter depends on its instance parameters (from the lower layer)
-                        for child_node in connected_nodes:
+                        for child_node in connected_nodes[node]:
+                            # Add node
+                            node_attributes = structure_graph.nodes[child_node]
+                            G_a.add_node(child_node, **node_attributes)
+                            # Add edge to abstract param
                             G_a.add_edge(child_node, param_name)
 
         return G_a
