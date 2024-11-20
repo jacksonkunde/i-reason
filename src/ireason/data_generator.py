@@ -380,69 +380,82 @@ class DataGenerator:
                             G_a.add_edge(aa_node, associated_param_name)
         return G_a
 
-    # def _generate_abstract_parameter_graph(
-    #     self, structure_graph: nx.Graph, layers: List[List[str]]
-    # ) -> nx.Graph:
-    #     """
-    #     Generates the abstract parameter graph G_a based on the structure graph layers.
-
-    #     :param structure_graph: The undirected structure graph G_s.
-    #     :param layers: A list of layers with node names from the structure graph.
-    #     :return: The abstract parameter graph G_a.
-    #     """
-    #     G_a = nx.DiGraph()
-
-    #     num_layers = len(layers)
-
-    #     # For each higher layer node, create abstract parameters for connected lower layers
-    #     for i in range(num_layers - 1):  # For layers 0 to num_layers - 2
-    #         higher_layer_nodes = layers[i]
-    #         connected_nodes = {}
-    #         for node in higher_layer_nodes:
-    #             # Check if the node is connected to any node in the lower layer
-    #             reachable_nodes = list(
-    #                 nx.single_source_shortest_path_length(structure_graph, node).keys()
-    #             )
-    #             for j in range(i + 1, num_layers):
-    #                 print(i, j)
-    #                 lower_layer_nodes = layers[j]
-    #                 lower_layer_category = structure_graph.nodes[lower_layer_nodes[0]][
-    #                     "category"
-    #                 ]
-    #                 if len(reachable_nodes) > 1:
-    #                     print(reachable_nodes)
-    #                     param_name = f"Abstract_{node}_Layer{j}"
-    #                     english_name = f"{structure_graph.nodes[node]['english_name']}'s {lower_layer_category}"
-    #                     print(english_name)
-    #                     print(english_name)
-    #                     G_a.add_node(
-    #                         param_name,
-    #                         difficulty_level=j - i,
-    #                         category=lower_layer_category,
-    #                         english_name=english_name,
-    #                         layers=[i + 1, 1 + j],
-    #                         node=node,
-    #                     )
-    #                     # The abstract parameter depends on its instance parameters (from the lower layer)
-    #                     for child_node in reachable_nodes:
-    #                         if structure_graph.nodes[child_node]["layer"] == j:
-    #                             # Add node
-    #                             node_attributes = structure_graph.nodes[child_node]
-    #                             G_a.add_node(child_node, **node_attributes)
-    #                             # Add edge to abstract param
-    #                             G_a.add_edge(child_node, param_name)
-    #                             break  # max 1 per layer
-
-    #     return G_a
-
     def _generate_G_d_nece1(
-        structure_graph: nx.Graph, abstract_graph: nx.DiGraph, n: int, m: int
+        self, structure_graph: nx.Graph, abstract_graph: nx.DiGraph, n: int, m: int
     ):
-        # abstract_parameters =
-        pass
+        """
+        Generate a subgraph G_d_nece1 of the abstract dependency graph G_d such that
+        the total number of operations required to compute its parameters is <= n.
+        This is from the algorithm DrawNecessary1(Gs, n, m) in the paper the physics of llms
+
+        Args:
+            structure_graph (nx.Graph): The underlying structure graph.
+            abstract_graph (nx.DiGraph): The dependency graph G_d with difficulty levels and dependencies.
+            n (int): Maximum allowed number of operations for the subgraph.
+            m (int): Not used in this function (can be extended later if needed).
+
+        Returns:
+            G_d_nece1 (nx.DiGraph): The subgraph with operations bounded by n.
+        """
+        G_d_nece1 = nx.DiGraph()
+
+        updated = True
+        while updated:
+            updated = False
+            # Get the maximum difficulty level of nodes in the abstract graph
+            max_difficulty = max(
+                [
+                    abstract_graph.nodes[n].get("difficulty_level", 0)
+                    for n in abstract_graph
+                ]
+            )
+            # Loop backward through difficulty levels (highest to lowest)
+            for curr_difficulty in range(max_difficulty, 0, -1):
+                for node in abstract_graph:
+                    # Check that we don't already have it and it is the correct difficulty level
+                    if (
+                        abstract_graph.nodes[node].get("difficulty_level")
+                        == curr_difficulty
+                        and node not in G_d_nece1.nodes
+                    ):
+                        attributes = abstract_graph.nodes[node]
+
+                        # Create a temporary graph G'
+                        G_prime = G_d_nece1.copy()
+
+                        # Add the current node with its attributes to G_prime
+                        G_prime.add_node(node, **attributes)
+
+                        # Add all its dependencies (edges) to G_d_nece1
+                        dependencies = self._get_node_dependencies(abstract_graph, node)
+                        for d in dependencies:
+                            # Add the dependencies to the graph and add edges
+                            d_attributes = abstract_graph.nodes[d]
+                            G_prime.add_node(d, **d_attributes)
+                            G_prime.add_edge(d, node)
+
+                        # Calculate the total number of operations op(G')
+                        op_G_prime = self._calculate_op(G_prime)
+
+                        # Check if op(G') <= n
+                        if op_G_prime <= n:
+                            G_d_nece1 = G_prime
+                            updated = True
+                            break
+
+        return G_d_nece1
+
+    def _calculate_op(self, graph: nx.DiGraph):
+        # op_G(a) = max(1, t - 1)
+        return sum(max(1, graph.in_degree(a) - 1) for a in graph.nodes)
+
+    def _get_node_dependencies(self, graph: nx.DiGraph, node) -> List[str]:
+        dependencies = []
+        for predecessor in graph.predecessors(node):
+            dependencies.append(predecessor)
+        return dependencies
 
     # Visualization
-
     def visualize_structure_graph(self, structure_graph):
         """
         Visualizes the structure graph G_s.
