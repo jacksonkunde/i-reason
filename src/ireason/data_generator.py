@@ -301,66 +301,145 @@ class DataGenerator:
         G_a = nx.DiGraph()
 
         num_layers = len(layers)
+        print(f"num layers: {num_layers}")
 
-        # For each higher layer node, create abstract parameters for connected lower layers
-        for i in range(num_layers - 1):  # For layers 0 to num_layers - 2
+        # Go from lower layers to higher layers, building abstract params as we go
+        for i in range(num_layers - 2, -1, -1):
+            print(f"top layer: {i}")
             higher_layer_nodes = layers[i]
-            connected_nodes = {}
-            for j in range(i + 1, num_layers):
-                print(i, j)
-                lower_layer_nodes = layers[j]
-                lower_layer_category = structure_graph.nodes[lower_layer_nodes[0]][
-                    "category"
+            for node in higher_layer_nodes:
+                print(f"curr node: {node}")
+                # We only want to look at neighbors below us
+                # Layers are 1 indexed
+                neighbors = [
+                    n
+                    for n in structure_graph.neighbors(node)
+                    if structure_graph.nodes[n]["layer"] == i + 2
                 ]
-                for node in higher_layer_nodes:
-                    # Check if the node is connected to any node in the lower layer
-                    reachable_nodes = list(
-                        nx.single_source_shortest_path_length(
-                            structure_graph, node
-                        ).keys()
+                print(f"neighbors: {neighbors}")
+                print(
+                    f"their layers: {[structure_graph.nodes[n]["layer"] for n in structure_graph.neighbors(node)]}"
+                )
+                if neighbors:  # We need to create an abstract
+                    # Get the category
+                    lower_layer_nodes = layers[i + 1]
+                    lower_layer_category = structure_graph.nodes[lower_layer_nodes[0]][
+                        "category"
+                    ]
+                    english_name = f"{structure_graph.nodes[node]['english_name']}'s {lower_layer_category}"
+                    param_name = f"Abstract_{node}_Layer{i + 1}_{english_name}"
+                    print(f"adding 1 node: {english_name}")
+                    print(param_name)
+                    G_a.add_node(
+                        param_name,
+                        difficulty_level=1,
+                        category=lower_layer_category,
+                        english_name=english_name,
+                        layers=[i + 1, i + 2],
+                        node=node,
                     )
-                    # if not connected_nodes.get(node, None):
-                    #     connected_nodes[node] = structure_graph.neighbors(node)
-                    if len(reachable_nodes) > 1:
-                        print(reachable_nodes)
-                        # else:
-                        #     connected_extends = []
-                        #     for n in connected_nodes[node]:
-                        #         ce = [
-                        #             neighbor
-                        #             for neighbor in structure_graph.neighbors(n)
-                        #             if neighbor in lower_layer_nodes
-                        #         ]
-                        #         connected_extends.extend(ce)
-                        #     connected_nodes[node] = connected_extends
-                        # if connected_nodes[node]:
-                        # Create an abstract parameter for this node and lower layer
-                        param_name = f"Abstract_{node}_Layer{j}"
-                        english_name = f"{structure_graph.nodes[node]['english_name']}'s {lower_layer_category}"
-                        print(english_name)
-                        print(english_name)
-                        G_a.add_node(
-                            param_name,
-                            difficulty_level=j - i,
-                            category=lower_layer_category,
-                            english_name=english_name,
-                            layers=[i + 1, 1 + j],
-                            node=node,
+                    # Update original node from structure graph to show that it has a corresponding abstract_param
+                    structure_graph.nodes[node]["abstract_nodes"] = (
+                        structure_graph.nodes[node].get("abstract_nodes", [])
+                        + [param_name]
+                    )
+                    print(f"neighbors: {neighbors}")
+                    for nei in neighbors:
+                        node_attributes = structure_graph.nodes[nei]
+                        G_a.add_node(nei, **node_attributes)
+                        G_a.add_edge(nei, param_name)
+                        # Check if this node has an associated abstract param
+                        associated_abstract_nodes = node_attributes.get(
+                            "abstract_nodes", []
                         )
-                        # The abstract parameter depends on its instance parameters (from the lower layer)
-                        # for child_node in connected_nodes[node]:
-                        for child_node in reachable_nodes:
-                            if (
-                                structure_graph.nodes[child_node]["layer"]
-                                > structure_graph.nodes[node]["layer"]
-                            ):
-                                # Add node
-                                node_attributes = structure_graph.nodes[child_node]
-                                G_a.add_node(child_node, **node_attributes)
-                                # Add edge to abstract param
-                                G_a.add_edge(child_node, param_name)
-
+                        # We want to add new abstract params for our current node for any abstract params we depend on
+                        for aa_node in associated_abstract_nodes:
+                            associated_attributes = G_a.nodes[aa_node]
+                            print(
+                                f"associated abstract: {associated_attributes.get("english_name")}"
+                            )
+                            associated_difficulty = associated_attributes.get(
+                                "difficulty_level"
+                            )
+                            print(f"ad: {associated_difficulty}")
+                            associated_lower_layer_category = associated_attributes.get(
+                                "category"
+                            )
+                            associated_english_name = f"{structure_graph.nodes[node]['english_name']}'s {associated_lower_layer_category}"
+                            associated_param_name = f"Abstract_{node}_Layer{i + associated_difficulty}_{associated_english_name}"
+                            print(f"adding node: {associated_english_name}")
+                            print(param_name)
+                            G_a.add_node(
+                                associated_param_name,
+                                difficulty_level=1 + associated_difficulty,
+                                category=associated_lower_layer_category,
+                                english_name=associated_english_name,
+                                layers=[i + 1, i + 1 + associated_difficulty],
+                                node=node,
+                            )
+                            G_a.add_edge(aa_node, associated_param_name)
         return G_a
+
+    # def _generate_abstract_parameter_graph(
+    #     self, structure_graph: nx.Graph, layers: List[List[str]]
+    # ) -> nx.Graph:
+    #     """
+    #     Generates the abstract parameter graph G_a based on the structure graph layers.
+
+    #     :param structure_graph: The undirected structure graph G_s.
+    #     :param layers: A list of layers with node names from the structure graph.
+    #     :return: The abstract parameter graph G_a.
+    #     """
+    #     G_a = nx.DiGraph()
+
+    #     num_layers = len(layers)
+
+    #     # For each higher layer node, create abstract parameters for connected lower layers
+    #     for i in range(num_layers - 1):  # For layers 0 to num_layers - 2
+    #         higher_layer_nodes = layers[i]
+    #         connected_nodes = {}
+    #         for node in higher_layer_nodes:
+    #             # Check if the node is connected to any node in the lower layer
+    #             reachable_nodes = list(
+    #                 nx.single_source_shortest_path_length(structure_graph, node).keys()
+    #             )
+    #             for j in range(i + 1, num_layers):
+    #                 print(i, j)
+    #                 lower_layer_nodes = layers[j]
+    #                 lower_layer_category = structure_graph.nodes[lower_layer_nodes[0]][
+    #                     "category"
+    #                 ]
+    #                 if len(reachable_nodes) > 1:
+    #                     print(reachable_nodes)
+    #                     param_name = f"Abstract_{node}_Layer{j}"
+    #                     english_name = f"{structure_graph.nodes[node]['english_name']}'s {lower_layer_category}"
+    #                     print(english_name)
+    #                     print(english_name)
+    #                     G_a.add_node(
+    #                         param_name,
+    #                         difficulty_level=j - i,
+    #                         category=lower_layer_category,
+    #                         english_name=english_name,
+    #                         layers=[i + 1, 1 + j],
+    #                         node=node,
+    #                     )
+    #                     # The abstract parameter depends on its instance parameters (from the lower layer)
+    #                     for child_node in reachable_nodes:
+    #                         if structure_graph.nodes[child_node]["layer"] == j:
+    #                             # Add node
+    #                             node_attributes = structure_graph.nodes[child_node]
+    #                             G_a.add_node(child_node, **node_attributes)
+    #                             # Add edge to abstract param
+    #                             G_a.add_edge(child_node, param_name)
+    #                             break  # max 1 per layer
+
+    #     return G_a
+
+    def _generate_G_d_nece1(
+        structure_graph: nx.Graph, abstract_graph: nx.DiGraph, n: int, m: int
+    ):
+        # abstract_parameters =
+        pass
 
     # Visualization
 
