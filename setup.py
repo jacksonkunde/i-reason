@@ -8,12 +8,15 @@ setup(
     package_dir={"": "src"},  # Tell setuptools that packages are under 'src'
     install_requires=[
         "datasets==3.1.0",
-        "networkx==3.4.2",
         "pandas==2.2.3",
         "dacite==1.8.1",
     ],
     extras_require={
-        "igsm": ["matplotlib>=3.9.2", "seaborn>=0.13.2"],
+        "igsm": [
+            "matplotlib>=3.9.2",
+            "seaborn>=0.13.2",
+            "networkx==3.4.2",
+        ],
         # "iadd": ["torch>=1.10.0"],
     },
     description="A description of your package",

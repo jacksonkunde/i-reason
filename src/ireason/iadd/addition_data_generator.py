@@ -87,8 +87,8 @@ class AdditionDataGenerator(DataGenerator):
 
         # Generate question, answer, and text
         question = " + ".join(terms)
-        answer = f"= {total}"
-        text = f"{question} {answer}"
+        answer = {total}
+        text = f"{question} = {answer}"
 
         # Metadata
         metadata = {
