@@ -10,11 +10,16 @@ setup(
         "datasets==3.1.0",
         "networkx==3.4.2",
         "pandas==2.2.3",
+        "dacite==1.8.1",
     ],
+    extras_require={
+        "igsm": ["matplotlib>=3.9.2", "seaborn>=0.13.2"],
+        # "iadd": ["torch>=1.10.0"],
+    },
     description="A description of your package",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/jacksonkunde/i-reason",
+    url="https://github.com/jacksonkunde/ireason",
     author="Jackson Kunde",
     author_email="jacksonkunde@gmail.com",
     classifiers=[
