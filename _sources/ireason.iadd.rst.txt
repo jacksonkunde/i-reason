@@ -1,0 +1,37 @@
+ireason.iadd package
+====================
+
+Submodules
+----------
+
+ireason.iadd.addition\_config module
+------------------------------------
+
+.. automodule:: ireason.iadd.addition_config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ireason.iadd.addition\_data\_generator module
+---------------------------------------------
+
+.. automodule:: ireason.iadd.addition_data_generator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ireason.iadd.main module
+------------------------
+
+.. automodule:: ireason.iadd.main
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ireason.iadd
+   :members:
+   :undoc-members:
+   :show-inheritance:

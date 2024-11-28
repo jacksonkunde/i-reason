@@ -1,0 +1,29 @@
+ireason.iGSM package
+====================
+
+Submodules
+----------
+
+ireason.iGSM.data\_generator module
+-----------------------------------
+
+.. automodule:: ireason.iGSM.data_generator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ireason.iGSM.solution\_evaluator module
+---------------------------------------
+
+.. automodule:: ireason.iGSM.solution_evaluator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ireason.iGSM
+   :members:
+   :undoc-members:
+   :show-inheritance:

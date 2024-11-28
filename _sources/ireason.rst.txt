@@ -1,0 +1,62 @@
+ireason package
+===============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ireason.iGSM
+   ireason.iadd
+
+Submodules
+----------
+
+ireason.data\_generator module
+------------------------------
+
+.. automodule:: ireason.data_generator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ireason.data\_generator copy module
+-----------------------------------
+
+.. automodule:: ireason.data_generator copy
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ireason.dataset\_splitter module
+--------------------------------
+
+.. automodule:: ireason.dataset_splitter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ireason.exporter module
+-----------------------
+
+.. automodule:: ireason.exporter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ireason.solution\_evaluator module
+----------------------------------
+
+.. automodule:: ireason.solution_evaluator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ireason
+   :members:
+   :undoc-members:
+   :show-inheritance:

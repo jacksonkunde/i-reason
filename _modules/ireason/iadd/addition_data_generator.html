@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ireason.iadd.addition_data_generator &#8212; iReason 0.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for ireason.iadd.addition_data_generator</h1><div class="highlight"><pre>
+<span></span><span class="c1"># data_generator.py</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">import</span> <span class="nn">random</span>
+
+<span class="kn">from</span> <span class="nn">ireason.data_generator</span> <span class="kn">import</span> <span class="n">DataGenerator</span>
+<span class="kn">from</span> <span class="nn">ireason.iadd.addition_config</span> <span class="kn">import</span> <span class="n">AdditionConfig</span>
+
+
+<div class="viewcode-block" id="AdditionDataGenerator">
+<a class="viewcode-back" href="../../../ireason.iadd.html#ireason.iadd.addition_data_generator.AdditionDataGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">AdditionDataGenerator</span><span class="p">(</span><span class="n">DataGenerator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Concrete implementation of DataGenerator for generating addition problems.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">AdditionConfig</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">random_seed</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+
+        <span class="c1"># Data Generation Configuration</span>
+        <span class="n">data_gen_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">data_generation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_examples</span> <span class="o">=</span> <span class="n">data_gen_config</span><span class="o">.</span><span class="n">num_examples</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_terms_config</span> <span class="o">=</span> <span class="n">data_gen_config</span><span class="o">.</span><span class="n">num_terms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">digit_constraints</span> <span class="o">=</span> <span class="n">data_gen_config</span><span class="o">.</span><span class="n">digit_constraints</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fill_zeros_config</span> <span class="o">=</span> <span class="n">data_gen_config</span><span class="o">.</span><span class="n">fill_zeros</span>
+
+        <span class="c1"># Test Set Configuration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_set_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">test_set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validation_split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_set_config</span><span class="o">.</span><span class="n">validation_split</span>
+
+        <span class="c1"># Difficult Test Set Configuration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">difficult_test_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_set_config</span><span class="o">.</span><span class="n">difficult_test_set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">greater_than_k_digits</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_digits_config</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_digits</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_positions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_hold_out</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_in_test_set</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">difficult_test_set</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">greater_than_k_digits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">difficult_test_set</span><span class="o">.</span><span class="n">greater_than_k_digits</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_digits_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">difficult_test_set</span><span class="o">.</span><span class="n">hold_out_digits</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_digits_config</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_digits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_digits_config</span><span class="o">.</span><span class="n">digits</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_digits_config</span><span class="o">.</span><span class="n">positions</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">apply_hold_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_digits_config</span><span class="o">.</span><span class="n">apply_to_training_set</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">include_in_test_set</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_digits_config</span><span class="o">.</span><span class="n">include_in_test_set</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Export Options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">export_options</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">export_options</span>
+
+<div class="viewcode-block" id="AdditionDataGenerator.generate_data">
+<a class="viewcode-back" href="../../../ireason.iadd.html#ireason.iadd.addition_data_generator.AdditionDataGenerator.generate_data">[docs]</a>
+    <span class="k">def</span> <span class="nf">generate_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_examples</span><span class="p">):</span>
+            <span class="n">example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_example</span><span class="p">()</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">example</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_generate_example</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="c1"># Determine the number of terms</span>
+        <span class="n">num_terms</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_terms_config</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_terms_config</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+        <span class="n">terms</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_terms</span><span class="p">):</span>
+            <span class="c1"># Determine the number of digits for the term</span>
+            <span class="n">digits</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">digit_constraints</span><span class="o">.</span><span class="n">min_digits</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">digit_constraints</span><span class="o">.</span><span class="n">max_digits</span>
+            <span class="p">)</span>
+            <span class="n">term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_term</span><span class="p">(</span><span class="n">digits</span><span class="p">)</span>
+            <span class="n">terms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
+
+        <span class="c1"># Decide whether to apply zero padding</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_zeros_config</span><span class="o">.</span><span class="n">apply_consistently</span><span class="p">:</span>
+            <span class="n">fill_zeros</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_zeros_config</span><span class="o">.</span><span class="n">fill</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fill_probability</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_zeros_config</span><span class="o">.</span><span class="n">probability</span>
+            <span class="n">fill_zeros</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">fill_probability</span>
+
+        <span class="k">if</span> <span class="n">fill_zeros</span><span class="p">:</span>
+            <span class="n">max_length</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">))</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">)</span>
+            <span class="n">terms</span> <span class="o">=</span> <span class="p">[</span><span class="n">term</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="n">max_length</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">]</span>
+
+        <span class="c1"># Calculate the sum of the terms</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">term</span><span class="p">)</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">)</span>
+
+        <span class="c1"># Generate question, answer, and text</span>
+        <span class="n">question</span> <span class="o">=</span> <span class="s2">&quot; + &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span>
+        <span class="n">answer</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;= </span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">question</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">answer</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># Metadata</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;num_terms&quot;</span><span class="p">:</span> <span class="n">num_terms</span><span class="p">,</span>
+            <span class="s2">&quot;terms_digits&quot;</span><span class="p">:</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">))</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">],</span>
+            <span class="s2">&quot;fill_zeros&quot;</span><span class="p">:</span> <span class="n">fill_zeros</span><span class="p">,</span>
+            <span class="s2">&quot;hold_out_applied&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_hold_out</span><span class="p">,</span>
+            <span class="s2">&quot;terms&quot;</span><span class="p">:</span> <span class="n">terms</span><span class="p">,</span>
+            <span class="s2">&quot;sum&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">total</span><span class="p">),</span>
+            <span class="s2">&quot;question&quot;</span><span class="p">:</span> <span class="n">question</span><span class="p">,</span>
+            <span class="s2">&quot;answer&quot;</span><span class="p">:</span> <span class="n">answer</span><span class="p">,</span>
+            <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">text</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">metadata</span>
+
+    <span class="k">def</span> <span class="nf">_generate_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">digits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">min_value</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">digits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">max_value</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="n">digits</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">term</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_hold_out</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_hold_out_digits</span><span class="p">(</span><span class="n">term</span><span class="p">):</span>
+                <span class="k">continue</span>  <span class="c1"># Reject term if it contains held-out digits in specified positions</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">return</span> <span class="n">term</span>
+
+    <span class="k">def</span> <span class="nf">_has_hold_out_digits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if the term contains any of the held-out digits in the specified positions.</span>
+<span class="sd">        Positions are counted from the right (least significant digit).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">term_reversed</span> <span class="o">=</span> <span class="n">term</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_positions</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pos</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">term_reversed</span><span class="p">):</span>
+                <span class="n">digit</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">term_reversed</span><span class="p">[</span><span class="n">pos</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">digit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_out_digits</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="AdditionDataGenerator.apply_transformations">
+<a class="viewcode-back" href="../../../ireason.iadd.html#ireason.iadd.addition_data_generator.AdditionDataGenerator.apply_transformations">[docs]</a>
+    <span class="k">def</span> <span class="nf">apply_transformations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="c1"># Placeholder for user-defined transformations</span>
+        <span class="c1"># In this implementation, we do not apply any additional transformations</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">iReason</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Jackson Kunde.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

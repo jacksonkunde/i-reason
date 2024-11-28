@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ireason.iGSM.data_generator &#8212; iReason 0.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for ireason.iGSM.data_generator</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">rcParams</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
+
+
+<div class="viewcode-block" id="DataGenerator">
+<a class="viewcode-back" href="../../../ireason.iGSM.html#ireason.iGSM.data_generator.DataGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">DataGenerator</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">max_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">max_nodes_per_layer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">max_instance_params</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">max_operations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="n">mod_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_layers</span> <span class="o">=</span> <span class="n">max_layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes_per_layer</span> <span class="o">=</span> <span class="n">max_nodes_per_layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_instance_params</span> <span class="o">=</span> <span class="n">max_instance_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_operations</span> <span class="o">=</span> <span class="n">max_operations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mod_value</span> <span class="o">=</span> <span class="n">mod_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">force</span> <span class="o">=</span> <span class="n">force</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_graph</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dependency_graph</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">query_parameter</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">topo_order</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">problem_description</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">question_description</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solution_description</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="c1"># Initialize hierarchical categories</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hierarchical_categories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_categories</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_categories</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes hierarchical categories with predefined categorizations and items.</span>
+
+<span class="sd">        :return: A list of categorizations, each being a list of categories.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">categorizations</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">[</span><span class="s2">&quot;District&quot;</span><span class="p">,</span> <span class="s2">&quot;Supermarket&quot;</span><span class="p">,</span> <span class="s2">&quot;Product&quot;</span><span class="p">,</span> <span class="s2">&quot;Ingredient&quot;</span><span class="p">],</span>
+            <span class="p">[</span><span class="s2">&quot;Zoo&quot;</span><span class="p">,</span> <span class="s2">&quot;Enclosure&quot;</span><span class="p">,</span> <span class="s2">&quot;Animal&quot;</span><span class="p">,</span> <span class="s2">&quot;Bone&quot;</span><span class="p">],</span>
+            <span class="p">[</span><span class="s2">&quot;School&quot;</span><span class="p">,</span> <span class="s2">&quot;Classroom&quot;</span><span class="p">,</span> <span class="s2">&quot;Backpack&quot;</span><span class="p">,</span> <span class="s2">&quot;Stationery&quot;</span><span class="p">],</span>
+            <span class="p">[</span><span class="s2">&quot;Ecosystems&quot;</span><span class="p">,</span> <span class="s2">&quot;Creatures&quot;</span><span class="p">,</span> <span class="s2">&quot;Organs&quot;</span><span class="p">,</span> <span class="s2">&quot;Cells&quot;</span><span class="p">],</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Prepare category items with subcategories and items</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">category_items</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;District&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;Commercial Districts&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;Shopping District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Business District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Financial District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Industrial District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Warehouse District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Market District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Restaurant District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Entertainment District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Arts District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Fashion District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Silicon Valley&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Wall Street&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Tech Park&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Automotive District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Jewelry District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Medical District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Legal District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Media District&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Research Park&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Manufacturing District&quot;</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="c1"># Additional subcategories...</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;Supermarket&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;Supermarkets&quot;</span><span class="p">:</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Supermarket </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">)],</span>
+                <span class="c1"># Additional subcategories...</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;Product&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;Snack Foods&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;Potato Chips&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Pretzels&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Popcorn&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Candy Bars&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Gummy Candy&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Cookies&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Crackers&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Granola Bars&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Fruit Snacks&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Cheese Puffs&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Nuts&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Trail Mix&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Beef Jerky&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Rice Cakes&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Yogurt Covered Raisins&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Chocolate Covered Pretzels&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Tortilla Chips&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Salsa&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Hummus&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Dried Fruit&quot;</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="c1"># Additional subcategories...</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;Ingredient&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;Spices&quot;</span><span class="p">:</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Spice </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">)],</span>
+                <span class="c1"># Additional subcategories...</span>
+            <span class="p">},</span>
+            <span class="c1"># Other categories with their subcategories and items...</span>
+            <span class="c1"># ...</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">categorizations</span>
+
+<div class="viewcode-block" id="DataGenerator.generate_data">
+<a class="viewcode-back" href="../../../ireason.iGSM.html#ireason.iGSM.data_generator.DataGenerator.generate_data">[docs]</a>
+    <span class="k">def</span> <span class="nf">generate_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Generate structure graph G_s</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_graph</span><span class="p">,</span> <span class="n">layers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_structure_graph</span><span class="p">()</span>
+        <span class="c1"># Generate dependency graph G_d</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dependency_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_dependency_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_graph</span><span class="p">)</span>
+        <span class="c1"># Generate problem, question, and solution descriptions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_descriptions</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_generate_structure_graph</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">min_items_per_layer</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">max_items_per_layer</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates the structure graph as per Algorithm 1.</span>
+
+<span class="sd">        :return: A tuple containing the structure graph and the layers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># BEGIN INIT</span>
+        <span class="c1"># If num_layers is not specified, randomly choose num_layers ∈ {2,3,4}</span>
+        <span class="k">if</span> <span class="n">num_layers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">num_layers</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+        <span class="c1"># Compute min and max number of edges</span>
+        <span class="n">min_edges</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">min_items_per_layer</span>
+        <span class="n">max_edges</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_items_per_layer</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="c1"># Ensure num_edges is within valid range</span>
+        <span class="n">num_edges</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">min_edges</span><span class="p">,</span> <span class="n">max_edges</span><span class="p">)</span>
+
+        <span class="c1"># Initialize layer_sizes = [min_items_per_layer] * num_layers</span>
+        <span class="n">layer_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">min_items_per_layer</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+
+        <span class="n">probability</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># END INIT</span>
+
+        <span class="c1"># BEGIN WHILE LOOP</span>
+        <span class="k">while</span> <span class="n">layer_sizes</span> <span class="o">!=</span> <span class="p">[</span><span class="n">max_items_per_layer</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span><span class="p">:</span>
+            <span class="c1"># Compute current min and max possible edges</span>
+            <span class="n">current_min_edges</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">layer_sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>  <span class="c1"># e^- = l_2 + l_3 + ... + l_d</span>
+            <span class="n">current_max_edges</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                <span class="n">layer_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">layer_sizes</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># e^+ = l_1*l_2 + l_2*l_3 + ...</span>
+
+            <span class="k">if</span> <span class="n">current_max_edges</span> <span class="o">&lt;</span> <span class="n">num_edges</span><span class="p">:</span>
+                <span class="c1"># Increase layer size</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">)</span> <span class="k">if</span> <span class="n">layer_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">max_items_per_layer</span>
+                <span class="p">]</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+                <span class="n">layer_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">current_min_edges</span> <span class="o">==</span> <span class="n">num_edges</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">probability</span><span class="p">:</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">)</span> <span class="k">if</span> <span class="n">layer_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">max_items_per_layer</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="n">indices</span><span class="p">:</span>
+                    <span class="n">i</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+                    <span class="n">layer_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># Construct the structure graph</span>
+        <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+            <span class="n">layer_nodes</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Layer</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">_Node</span><span class="si">{</span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">layer_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_nodes</span><span class="p">)</span>
+
+        <span class="n">structure_graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+
+        <span class="c1"># Randomly select categories for each layer</span>
+        <span class="n">categories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_categories</span><span class="p">(</span><span class="n">num_layers</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer_nodes</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layers</span><span class="p">):</span>
+            <span class="n">layer_number</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># Layers are 1-indexed</span>
+            <span class="n">category</span> <span class="o">=</span> <span class="n">categories</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">layer_nodes</span><span class="p">:</span>
+                <span class="n">structure_graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="n">layer_number</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="n">category</span><span class="p">)</span>
+
+        <span class="c1"># Create edges between adjacent layers</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                <span class="n">parent_node</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                <span class="n">structure_graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">parent_node</span><span class="p">)</span>
+
+        <span class="c1"># Add additional edges until reaching num_edges</span>
+        <span class="n">total_edges</span> <span class="o">=</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">number_of_edges</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">total_edges</span> <span class="o">&lt;</span> <span class="n">num_edges</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span> <span class="n">num_layers</span> <span class="o">-</span> <span class="mi">2</span>
+            <span class="p">)</span>  <span class="c1"># layer indices from 0 to num_layers - 2</span>
+            <span class="n">node_a</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">node_b</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">node_a</span><span class="p">,</span> <span class="n">node_b</span><span class="p">):</span>
+                <span class="n">structure_graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">node_a</span><span class="p">,</span> <span class="n">node_b</span><span class="p">)</span>
+                <span class="n">total_edges</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Assign English names to the nodes</span>
+        <span class="n">structure_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assign_names</span><span class="p">(</span><span class="n">structure_graph</span><span class="p">,</span> <span class="n">layers</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">structure_graph</span><span class="p">,</span> <span class="n">layers</span>
+
+    <span class="k">def</span> <span class="nf">_select_categories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Selects categories for each layer from hierarchical categories.</span>
+
+<span class="sd">        :param num_layers: Number of layers.</span>
+<span class="sd">        :return: A list of categories for each layer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Randomly select a categorization</span>
+        <span class="n">categorization</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hierarchical_categories</span><span class="p">)</span>
+
+        <span class="c1"># Randomly select consecutive categories matching the number of layers</span>
+        <span class="n">max_start_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">categorization</span><span class="p">)</span> <span class="o">-</span> <span class="n">num_layers</span>
+        <span class="n">start_index</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_start_index</span><span class="p">)</span>
+        <span class="n">selected_categories</span> <span class="o">=</span> <span class="n">categorization</span><span class="p">[</span><span class="n">start_index</span> <span class="p">:</span> <span class="n">start_index</span> <span class="o">+</span> <span class="n">num_layers</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">selected_categories</span>
+
+    <span class="k">def</span> <span class="nf">_assign_names</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">structure_graph</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">,</span>
+        <span class="n">layers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assigns English names to the nodes in the structure graph.</span>
+
+<span class="sd">        :param structure_graph: The structure graph with nodes.</span>
+<span class="sd">        :param layers: A list of layers with node names.</span>
+<span class="sd">        :return: The updated structure graph with English names assigned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Map to keep track of used names in each layer to ensure uniqueness</span>
+        <span class="n">used_names_per_layer</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Assign English names to each node in the structure graph</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer_nodes</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layers</span><span class="p">):</span>
+            <span class="n">layer_number</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># Layers are 1-indexed</span>
+            <span class="n">category</span> <span class="o">=</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">layer_nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="s2">&quot;category&quot;</span><span class="p">]</span>
+            <span class="n">used_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="n">used_names_per_layer</span><span class="p">[</span><span class="n">layer_number</span><span class="p">]</span> <span class="o">=</span> <span class="n">used_names</span>
+
+            <span class="c1"># Get items for the category</span>
+            <span class="n">items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">category_items</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">items</span><span class="p">:</span>
+                <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">category</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Flatten subcategories if necessary</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">items</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">]</span>
+
+            <span class="c1"># Shuffle items to randomize selection</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+            <span class="n">item_index</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">layer_nodes</span><span class="p">:</span>
+                <span class="c1"># Find an unused name</span>
+                <span class="k">while</span> <span class="n">item_index</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+                    <span class="n">item_name</span> <span class="o">=</span> <span class="n">items</span><span class="p">[</span><span class="n">item_index</span><span class="p">]</span>
+                    <span class="n">item_index</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">if</span> <span class="n">item_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">used_names</span><span class="p">:</span>
+                        <span class="n">used_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">item_name</span><span class="p">)</span>
+                        <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># If we run out of unique names, generate a new one</span>
+                    <span class="n">item_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">category</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">used_names</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">used_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">item_name</span><span class="p">)</span>
+
+                <span class="c1"># Assign the English name to the node</span>
+                <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;english_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">item_name</span>
+
+        <span class="k">return</span> <span class="n">structure_graph</span>
+
+    <span class="k">def</span> <span class="nf">_generate_abstract_parameter_graph</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">structure_graph</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">,</span>
+        <span class="n">layers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates the abstract parameter graph G_a based on the structure graph layers.</span>
+
+<span class="sd">        :param structure_graph: The undirected structure graph G_s.</span>
+<span class="sd">        :param layers: A list of layers with node names from the structure graph.</span>
+<span class="sd">        :return: The abstract parameter graph G_a.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">G_a</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">()</span>
+
+        <span class="n">num_layers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;num layers: </span><span class="si">{</span><span class="n">num_layers</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Go from lower layers to higher layers, building abstract params as we go</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;top layer: </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">higher_layer_nodes</span> <span class="o">=</span> <span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">higher_layer_nodes</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;curr node: </span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># We only want to look at neighbors below us</span>
+                <span class="c1"># Layers are 1 indexed</span>
+                <span class="n">neighbors</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">n</span>
+                    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s2">&quot;layer&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span>
+                <span class="p">]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;neighbors: </span><span class="si">{</span><span class="n">neighbors</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;their layers: </span><span class="si">{</span><span class="p">[</span><span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s2">&quot;layer&quot;</span><span class="p">]</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">structure_graph</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">node</span><span class="p">)]</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">neighbors</span><span class="p">:</span>  <span class="c1"># We need to create an abstract</span>
+                    <span class="c1"># Get the category</span>
+                    <span class="n">lower_layer_nodes</span> <span class="o">=</span> <span class="n">layers</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="n">lower_layer_category</span> <span class="o">=</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">lower_layer_nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span>
+                        <span class="s2">&quot;category&quot;</span>
+                    <span class="p">]</span>
+                    <span class="n">english_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;english_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;s </span><span class="si">{</span><span class="n">lower_layer_category</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">param_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Abstract_</span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2">_Layer</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">english_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;adding 1 node: </span><span class="si">{</span><span class="n">english_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">param_name</span><span class="p">)</span>
+                    <span class="n">G_a</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span>
+                        <span class="n">param_name</span><span class="p">,</span>
+                        <span class="n">difficulty_level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">category</span><span class="o">=</span><span class="n">lower_layer_category</span><span class="p">,</span>
+                        <span class="n">english_name</span><span class="o">=</span><span class="n">english_name</span><span class="p">,</span>
+                        <span class="n">layers</span><span class="o">=</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">],</span>
+                        <span class="n">node</span><span class="o">=</span><span class="n">node</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="c1"># Update original node from structure graph to show that it has a corresponding abstract_param</span>
+                    <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;abstract_nodes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;abstract_nodes&quot;</span><span class="p">,</span> <span class="p">[])</span>
+                        <span class="o">+</span> <span class="p">[</span><span class="n">param_name</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;neighbors: </span><span class="si">{</span><span class="n">neighbors</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">nei</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">:</span>
+                        <span class="n">node_attributes</span> <span class="o">=</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">nei</span><span class="p">]</span>
+                        <span class="n">G_a</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">nei</span><span class="p">,</span> <span class="o">**</span><span class="n">node_attributes</span><span class="p">)</span>
+                        <span class="n">G_a</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">nei</span><span class="p">,</span> <span class="n">param_name</span><span class="p">)</span>
+                        <span class="c1"># Check if this node has an associated abstract param</span>
+                        <span class="n">associated_abstract_nodes</span> <span class="o">=</span> <span class="n">node_attributes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                            <span class="s2">&quot;abstract_nodes&quot;</span><span class="p">,</span> <span class="p">[]</span>
+                        <span class="p">)</span>
+                        <span class="c1"># We want to add new abstract params for our current node for any abstract params we depend on</span>
+                        <span class="k">for</span> <span class="n">aa_node</span> <span class="ow">in</span> <span class="n">associated_abstract_nodes</span><span class="p">:</span>
+                            <span class="n">associated_attributes</span> <span class="o">=</span> <span class="n">G_a</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">aa_node</span><span class="p">]</span>
+                            <span class="nb">print</span><span class="p">(</span>
+                                <span class="sa">f</span><span class="s2">&quot;associated abstract: </span><span class="si">{</span><span class="n">associated_attributes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;english_name&quot;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="p">)</span>
+                            <span class="n">associated_difficulty</span> <span class="o">=</span> <span class="n">associated_attributes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                                <span class="s2">&quot;difficulty_level&quot;</span>
+                            <span class="p">)</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ad: </span><span class="si">{</span><span class="n">associated_difficulty</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="n">associated_lower_layer_category</span> <span class="o">=</span> <span class="n">associated_attributes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                                <span class="s2">&quot;category&quot;</span>
+                            <span class="p">)</span>
+                            <span class="n">associated_english_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;english_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;s </span><span class="si">{</span><span class="n">associated_lower_layer_category</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="n">associated_param_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Abstract_</span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2">_Layer</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">associated_difficulty</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">associated_english_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;adding node: </span><span class="si">{</span><span class="n">associated_english_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="n">param_name</span><span class="p">)</span>
+                            <span class="n">G_a</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span>
+                                <span class="n">associated_param_name</span><span class="p">,</span>
+                                <span class="n">difficulty_level</span><span class="o">=</span><span class="mi">1</span> <span class="o">+</span> <span class="n">associated_difficulty</span><span class="p">,</span>
+                                <span class="n">category</span><span class="o">=</span><span class="n">associated_lower_layer_category</span><span class="p">,</span>
+                                <span class="n">english_name</span><span class="o">=</span><span class="n">associated_english_name</span><span class="p">,</span>
+                                <span class="n">layers</span><span class="o">=</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">associated_difficulty</span><span class="p">],</span>
+                                <span class="n">node</span><span class="o">=</span><span class="n">node</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="n">G_a</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">aa_node</span><span class="p">,</span> <span class="n">associated_param_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">G_a</span>
+
+    <span class="k">def</span> <span class="nf">_generate_G_nece1</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">abstract_graph</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a subgraph G_d_nece1 of the abstract dependency graph G_d such that</span>
+<span class="sd">        the total number of operations required to compute its parameters is &lt;= n.</span>
+<span class="sd">        This is from the algorithm DrawNecessary1(Gs, n, m) in the paper the physics of llms</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            structure_graph (nx.Graph): The underlying structure graph.</span>
+<span class="sd">            abstract_graph (nx.DiGraph): The dependency graph G_d with difficulty levels and dependencies.</span>
+<span class="sd">            n (int): Maximum allowed number of operations for the subgraph.</span>
+<span class="sd">            m (int): Not used in this function (can be extended later if needed).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            G_d_nece1 (nx.DiGraph): The subgraph with operations bounded by n.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">G_d_nece1</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">()</span>
+
+        <span class="n">updated</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">while</span> <span class="n">updated</span><span class="p">:</span>
+            <span class="n">updated</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="c1"># Get the maximum difficulty level of nodes in the abstract graph</span>
+            <span class="n">max_difficulty</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">abstract_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;difficulty_level&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">abstract_graph</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+            <span class="c1"># Loop backward through difficulty levels (highest to lowest)</span>
+            <span class="k">for</span> <span class="n">curr_difficulty</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_difficulty</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">abstract_graph</span><span class="p">:</span>
+                    <span class="c1"># Check that we don&#39;t already have it and it is the correct difficulty level</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">abstract_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;difficulty_level&quot;</span><span class="p">)</span>
+                        <span class="o">==</span> <span class="n">curr_difficulty</span>
+                        <span class="ow">and</span> <span class="n">node</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">G_d_nece1</span><span class="o">.</span><span class="n">nodes</span>
+                    <span class="p">):</span>
+                        <span class="n">attributes</span> <span class="o">=</span> <span class="n">abstract_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+
+                        <span class="c1"># Create a temporary graph G&#39;</span>
+                        <span class="n">G_prime</span> <span class="o">=</span> <span class="n">G_d_nece1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                        <span class="c1"># Add the current node with its attributes to G_prime</span>
+                        <span class="n">G_prime</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="o">**</span><span class="n">attributes</span><span class="p">)</span>
+
+                        <span class="c1"># Add all its dependencies (edges) to G_d_nece1</span>
+                        <span class="n">dependencies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_node_dependencies</span><span class="p">(</span><span class="n">abstract_graph</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dependencies</span><span class="p">:</span>
+                            <span class="c1"># Add the dependencies to the graph and add edges</span>
+                            <span class="n">d_attributes</span> <span class="o">=</span> <span class="n">abstract_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">d</span><span class="p">]</span>
+                            <span class="n">G_prime</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="o">**</span><span class="n">d_attributes</span><span class="p">)</span>
+                            <span class="n">G_prime</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+
+                        <span class="c1"># Calculate the total number of operations op(G&#39;)</span>
+                        <span class="n">op_G_prime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_op</span><span class="p">(</span><span class="n">G_prime</span><span class="p">)</span>
+
+                        <span class="c1"># Check if op(G&#39;) &lt;= n</span>
+                        <span class="k">if</span> <span class="n">op_G_prime</span> <span class="o">&lt;=</span> <span class="n">n</span><span class="p">:</span>
+                            <span class="n">G_d_nece1</span> <span class="o">=</span> <span class="n">G_prime</span>
+                            <span class="n">updated</span> <span class="o">=</span> <span class="kc">True</span>
+                            <span class="k">break</span>
+
+        <span class="k">return</span> <span class="n">G_d_nece1</span>
+
+    <span class="k">def</span> <span class="nf">_generate_G_nece2</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">G_d_nece_1</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">,</span>
+        <span class="n">structure_graph</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">,</span>
+        <span class="n">m</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">G_d_nece_2</span> <span class="o">=</span> <span class="n">G_d_nece_1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_op</span><span class="p">(</span><span class="n">G_d_nece_2</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="n">op</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="n">op</span><span class="p">):</span>
+            <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">node</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span> <span class="k">if</span> <span class="n">node</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">G_d_nece_2</span><span class="o">.</span><span class="n">nodes</span>
+            <span class="p">]</span>
+            <span class="n">chosen_node</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span>
+            <span class="n">node_attributes</span> <span class="o">=</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">chosen_node</span><span class="p">]</span>
+            <span class="n">G_d_nece_2</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">chosen_node</span><span class="p">,</span> <span class="o">**</span><span class="n">node_attributes</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="k">return</span> <span class="n">G_d_nece_2</span>
+
+    <span class="k">def</span> <span class="nf">_generate_G_nece3</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">G_nece2_d</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]:</span>
+        <span class="n">iteration_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_iterations</span> <span class="o">=</span> <span class="mi">1000</span>
+
+        <span class="k">while</span> <span class="n">iteration_count</span> <span class="o">&lt;=</span> <span class="n">max_iterations</span><span class="p">:</span>
+            <span class="n">iteration_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">iteration_count</span><span class="p">)</span>
+            <span class="n">G_nece3_d</span> <span class="o">=</span> <span class="n">G_nece2_d</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">topo</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">remaining_params</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">G_nece3_d</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+            <span class="n">success</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="c1"># If Topological is empty</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">topo</span><span class="p">:</span>
+                    <span class="n">next_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_next_2</span><span class="p">(</span><span class="n">G_nece3_d</span><span class="p">,</span> <span class="n">remaining_params</span><span class="p">,</span> <span class="n">topo</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">next_2</span><span class="p">:</span>
+                        <span class="n">success</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">break</span>
+
+                    <span class="n">param_0</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">next_2</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">query_parameter</span> <span class="o">=</span> <span class="n">param_0</span>
+                <span class="c1"># Topo not empty</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Define Next1 and Next2</span>
+                    <span class="n">next_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_next_1</span><span class="p">(</span><span class="n">G_nece3_d</span><span class="p">,</span> <span class="n">remaining_params</span><span class="p">,</span> <span class="n">topo</span><span class="p">)</span>
+                    <span class="n">next_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_next_2</span><span class="p">(</span><span class="n">G_nece3_d</span><span class="p">,</span> <span class="n">remaining_params</span><span class="p">,</span> <span class="n">topo</span><span class="p">)</span>
+                    <span class="n">candidates</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">next_1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">next_2</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;can: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;topo: </span><span class="si">{</span><span class="n">topo</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">param_0</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">candidates</span><span class="p">))</span>
+
+                <span class="n">topo</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">param_0</span><span class="p">)</span>
+                <span class="n">remaining_params</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">param_0</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">remaining_params</span><span class="p">:</span>
+                    <span class="n">success</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">break</span>
+
+                <span class="c1"># Define Next1 and Next2</span>
+                <span class="n">next_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_next_1</span><span class="p">(</span><span class="n">G_nece3_d</span><span class="p">,</span> <span class="n">remaining_params</span><span class="p">,</span> <span class="n">topo</span><span class="p">)</span>
+                <span class="n">next_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_next_2</span><span class="p">(</span><span class="n">G_nece3_d</span><span class="p">,</span> <span class="n">remaining_params</span><span class="p">,</span> <span class="n">topo</span><span class="p">)</span>
+                <span class="n">candidates</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">next_1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">next_2</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_abstract</span><span class="p">(</span><span class="n">param_0</span><span class="p">,</span> <span class="n">G_nece2_d</span><span class="p">):</span>
+                        <span class="n">success</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="c1"># Failure, restart</span>
+                        <span class="k">break</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">param_1</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">next_2</span><span class="p">)</span>
+                        <span class="n">G_nece3_d</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">param_0</span><span class="p">,</span> <span class="n">param_1</span><span class="p">)</span>
+
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_instance</span><span class="p">(</span><span class="n">param_0</span><span class="p">,</span> <span class="n">G_nece2_d</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">:</span>
+                        <span class="n">param_1</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">candidates</span><span class="p">))</span>
+                        <span class="n">G_nece3_d</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">param_1</span><span class="p">,</span> <span class="n">param_0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">success</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">G_nece3_d</span><span class="p">,</span> <span class="n">topo</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">topo</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">):</span>
+        <span class="c1"># op_G(a) = max(1, t - 1)</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">graph</span><span class="o">.</span><span class="n">in_degree</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_node_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="n">dependencies</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">predecessor</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">predecessors</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
+            <span class="n">dependencies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predecessor</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dependencies</span>
+
+    <span class="k">def</span> <span class="nf">_is_abstract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Node is abstract if it has a difficulty level in the graph.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;difficulty_level&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_is_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_abstract</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">graph</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_next_1</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">G_nece3_d</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">,</span>
+        <span class="n">remaining_params</span><span class="p">:</span> <span class="nb">set</span><span class="p">,</span>
+        <span class="n">topo</span><span class="p">:</span> <span class="n">List</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">n</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">remaining_params</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">pred</span> <span class="ow">in</span> <span class="n">topo</span> <span class="k">for</span> <span class="n">pred</span> <span class="ow">in</span> <span class="n">G_nece3_d</span><span class="o">.</span><span class="n">predecessors</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_get_next_2</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">G_nece3_d</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">,</span>
+        <span class="n">remaining_params</span><span class="p">:</span> <span class="nb">set</span><span class="p">,</span>
+        <span class="n">topo</span><span class="p">:</span> <span class="n">List</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">n</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">remaining_params</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">pred</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">topo</span> <span class="k">for</span> <span class="n">pred</span> <span class="ow">in</span> <span class="n">G_nece3_d</span><span class="o">.</span><span class="n">predecessors</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+        <span class="p">]</span>
+
+    <span class="c1"># Visualization</span>
+<div class="viewcode-block" id="DataGenerator.visualize_structure_graph">
+<a class="viewcode-back" href="../../../ireason.iGSM.html#ireason.iGSM.data_generator.DataGenerator.visualize_structure_graph">[docs]</a>
+    <span class="k">def</span> <span class="nf">visualize_structure_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">structure_graph</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Visualizes the structure graph G_s.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">multipartite_layout</span><span class="p">(</span><span class="n">structure_graph</span><span class="p">,</span> <span class="n">subset_key</span><span class="o">=</span><span class="s2">&quot;layer&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+        <span class="n">node_colors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="n">node_colors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;lightblue&quot;</span><span class="p">)</span>
+            <span class="c1"># if self._is_abstract(node):</span>
+            <span class="c1">#     node_colors.append(&quot;lightblue&quot;)</span>
+            <span class="c1"># else:</span>
+            <span class="c1">#     node_colors.append(&quot;lightgreen&quot;)</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">draw_networkx_nodes</span><span class="p">(</span>
+            <span class="n">structure_graph</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">node_color</span><span class="o">=</span><span class="n">node_colors</span><span class="p">,</span> <span class="n">node_size</span><span class="o">=</span><span class="mi">800</span>
+        <span class="p">)</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">draw_networkx_labels</span><span class="p">(</span>
+            <span class="n">structure_graph</span><span class="p">,</span>
+            <span class="n">pos</span><span class="p">,</span>
+            <span class="n">labels</span><span class="o">=</span><span class="p">{</span>
+                <span class="n">node</span><span class="p">:</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;english_name&quot;</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">structure_graph</span><span class="o">.</span><span class="n">nodes</span>
+            <span class="p">},</span>
+            <span class="n">font_family</span><span class="o">=</span><span class="s2">&quot;Times New Roman&quot;</span><span class="p">,</span>
+            <span class="n">font_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">nx</span><span class="o">.</span><span class="n">draw_networkx_edges</span><span class="p">(</span><span class="n">structure_graph</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Structure Graph $G_s$&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">iReason</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">API Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Jackson Kunde.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

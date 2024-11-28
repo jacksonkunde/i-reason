@@ -1,0 +1,26 @@
+Welcome to iReason's Documentation!
+======================================
+
+iReason is a Python library that can be used to generate data for algorithmic tasks.
+
+Contents
+--------
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Guide:
+
+   introduction
+   installation
+   usage
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API Documentation:
+
+   modules
+
+About
+-----
+
+For more information, visit the project's `GitHub repository <https://github.com/yourusername/yourrepo>`_.
