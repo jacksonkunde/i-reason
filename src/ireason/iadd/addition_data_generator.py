@@ -42,7 +42,9 @@ class AdditionDataGenerator(DataGenerator):
         # Combine moved examples with test data
         test_data_combined = test_data + moved_examples
 
-        return {"training_data": training_data_clean, "test_data": test_data_combined}
+        return self.apply_transformations(
+            {"train_data": training_data_clean, "test_data": test_data_combined}
+        )
 
     def _generate_dataset(
         self, dataset_config, dataset_type: str
@@ -60,7 +62,9 @@ class AdditionDataGenerator(DataGenerator):
         data = []
         min_num = 10 ** (dataset_config.min_digits - 1)
         max_num = 10**dataset_config.max_digits - 1
+        print(f"min: {min_num}, max: {max_num}")
         numbers = [str(num) for num in range(min_num, max_num + 1)]
+        print()
 
         # Generate all possible combinations of numbers for each term count
         for num_terms in range(dataset_config.min_terms, dataset_config.max_terms + 1):

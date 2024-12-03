@@ -19,6 +19,11 @@ setup(
         ],
         # "iadd": ["torch>=1.10.0"],
     },
+    entry_points={
+        "console_scripts": [
+            "generate_addition=ireason.iadd.generate_addition_data:run",
+        ],
+    },
     description="A description of your package",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
