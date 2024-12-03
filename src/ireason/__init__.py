@@ -1,7 +1,6 @@
 # ireason/__init__.py
 
 # General
-from .dataset_splitter import DatasetSplitter
 from .base.solution_evaluator import SolutionEvaluator
 from .base.exporter import CSVExporter, JSONExporter, HuggingFaceExporter
 
