@@ -1,7 +1,6 @@
 # solution_parser.py
 from abc import ABC, abstractmethod
-import re
-from typing import List, Dict, Any
+from typing import List
 
 
 class SolutionEvaluator(ABC):

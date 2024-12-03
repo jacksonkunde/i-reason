@@ -10,14 +10,16 @@ class DataGenerator(ABC):
     """
 
     @abstractmethod
-    def generate_data(self) -> List[Dict[str, Any]]:
+    def generate_data(self) -> Dict[str, List[Dict[str, Any]]]:
         """
         Generates the dataset based on specified parameters.
         """
         pass
 
     @abstractmethod
-    def apply_transformations(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def apply_transformations(
+        self, data: Dict[str, List[Dict[str, Any]]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
         """
         Applies any user-defined formatting or processing functions.
         """

@@ -1,15 +1,16 @@
-# data_generator.py
+# addition_data_generator.py
 
-from typing import List, Dict, Any
+from .addition_config import AdditionConfig
+from ..base.data_generator import DataGenerator
+
+from typing import List, Dict, Any, Tuple
+from itertools import combinations_with_replacement
 import random
-
-from ireason.data_generator import DataGenerator
-from ireason.iadd.addition_config import AdditionConfig
 
 
 class AdditionDataGenerator(DataGenerator):
     """
-    Concrete implementation of DataGenerator for generating addition problems.
+    Generates synthetic addition data based on the provided configuration.
     """
 
     def __init__(self, config: AdditionConfig):
@@ -17,120 +18,152 @@ class AdditionDataGenerator(DataGenerator):
         self.random_seed = config.random_seed
         random.seed(self.random_seed)
 
-        # Data Generation Configuration
-        data_gen_config = config.data_generation
-        self.num_examples = data_gen_config.num_examples
-        self.num_terms_config = data_gen_config.num_terms
-        self.digit_constraints = data_gen_config.digit_constraints
-        self.fill_zeros_config = data_gen_config.fill_zeros
+        self.training_config = config.training_config
+        self.test_config = config.test_config
+        self.held_out_config = config.held_out_config
 
-        # Test Set Configuration
-        self.test_set_config = config.test_set
-        self.validation_split = self.test_set_config.validation_split
+    def generate_data(self) -> Dict[str, List[Dict[str, Any]]]:
+        # Generate training data
+        training_data = self._generate_dataset(
+            self.training_config, dataset_type="train"
+        )
 
-        # Difficult Test Set Configuration
-        self.difficult_test_set = self.test_set_config.difficult_test_set
-        self.greater_than_k_digits = None
-        self.hold_out_digits_config = None
-        self.hold_out_digits = []
-        self.hold_out_positions = []
-        self.apply_hold_out = False
-        self.include_in_test_set = False
+        if self.held_out_config is not None:
+            training_data_clean, moved_examples = self._filter_held_out_examples(
+                training_data
+            )
+        else:
+            training_data_clean = training_data
+            moved_examples = []
 
-        if self.difficult_test_set:
-            self.greater_than_k_digits = self.difficult_test_set.greater_than_k_digits
-            self.hold_out_digits_config = self.difficult_test_set.hold_out_digits
-            if self.hold_out_digits_config:
-                self.hold_out_digits = self.hold_out_digits_config.digits
-                self.hold_out_positions = self.hold_out_digits_config.positions
-                self.apply_hold_out = self.hold_out_digits_config.apply_to_training_set
-                self.include_in_test_set = (
-                    self.hold_out_digits_config.include_in_test_set
-                )
+        # Generate test data
+        test_data = self._generate_dataset(self.test_config, dataset_type="test")
 
-        # Export Options
-        self.export_options = config.export_options
+        # Combine moved examples with test data
+        test_data_combined = test_data + moved_examples
 
-    def generate_data(self) -> List[Dict[str, Any]]:
+        return {"training_data": training_data_clean, "test_data": test_data_combined}
+
+    def _generate_dataset(
+        self, dataset_config, dataset_type: str
+    ) -> List[Dict[str, Any]]:
+        if dataset_config.generation_type == "generate_all":
+            data = self._generate_all(dataset_config, dataset_type)
+        elif dataset_config.generation_type == "random":
+            data = self._generate_random(dataset_config, dataset_type)
+        else:
+            raise ValueError("Invalid generation type.")
+
+        return data
+
+    def _generate_all(self, dataset_config, dataset_type: str) -> List[Dict[str, Any]]:
         data = []
-        for _ in range(self.num_examples):
-            example = self._generate_example()
+        min_num = 10 ** (dataset_config.min_digits - 1)
+        max_num = 10**dataset_config.max_digits - 1
+        numbers = [str(num) for num in range(min_num, max_num + 1)]
+
+        # Generate all possible combinations of numbers for each term count
+        for num_terms in range(dataset_config.min_terms, dataset_config.max_terms + 1):
+            term_combinations = combinations_with_replacement(numbers, num_terms)
+            for terms in term_combinations:
+                example = self._create_example(
+                    list(terms), dataset_config.fill_zeros, dataset_type
+                )
+                data.append(example)
+
+        return data
+
+    def _generate_random(
+        self, dataset_config, dataset_type: str
+    ) -> List[Dict[str, Any]]:
+        data = []
+        for _ in range(dataset_config.num_examples):
+            num_terms = random.randint(
+                dataset_config.min_terms, dataset_config.max_terms
+            )
+            terms = []
+            for _ in range(num_terms):
+                num_digits = random.randint(
+                    dataset_config.min_digits, dataset_config.max_digits
+                )
+                term = self._generate_term(num_digits)
+                terms.append(term)
+            example = self._create_example(
+                terms, dataset_config.fill_zeros, dataset_type
+            )
             data.append(example)
         return data
 
-    def _generate_example(self) -> Dict[str, Any]:
-        # Determine the number of terms
-        num_terms = random.randint(self.num_terms_config.min, self.num_terms_config.max)
-        terms = []
+    def _generate_term(self, num_digits: int) -> str:
+        min_value = 10 ** (num_digits - 1)
+        max_value = (10**num_digits) - 1
+        term = str(random.randint(min_value, max_value))
+        return term
 
-        for _ in range(num_terms):
-            # Determine the number of digits for the term
-            digits = random.randint(
-                self.digit_constraints.min_digits, self.digit_constraints.max_digits
-            )
-            term = self._generate_term(digits)
-            terms.append(term)
-
-        # Decide whether to apply zero padding
-        if self.fill_zeros_config.apply_consistently:
-            fill_zeros = self.fill_zeros_config.fill
-        else:
-            fill_probability = self.fill_zeros_config.probability
-            fill_zeros = random.random() < fill_probability
-
+    def _create_example(
+        self, terms: List[str], fill_zeros: bool, dataset_type: str
+    ) -> Dict[str, Any]:
+        # Apply fill zeros if specified
+        fill_zeros_applied = False
         if fill_zeros:
-            max_length = max(len(term.lstrip("0")) for term in terms)
+            max_length = max(len(term) for term in terms)
             terms = [term.zfill(max_length) for term in terms]
+            fill_zeros_applied = True
 
-        # Calculate the sum of the terms
+        # Check for held-out digits in specified positions
+        if self.held_out_config is not None:
+            contains_held_out = any(
+                self._contains_held_out_digit(term) for term in terms
+            )
+        else:
+            contains_held_out = False
+
+        # Sum the terms
         total = sum(int(term) for term in terms)
 
-        # Generate question, answer, and text
+        # Create question, answer, and text
         question = " + ".join(terms)
-        answer = {total}
-        text = f"{question} = {answer}"
+        answer = f"= {total}"
+        text = f"{question} {answer}"
 
-        # Metadata
+        # Build metadata
         metadata = {
-            "num_terms": num_terms,
-            "terms_digits": [len(term.lstrip("0")) for term in terms],
-            "fill_zeros": fill_zeros,
-            "hold_out_applied": self.apply_hold_out,
             "terms": terms,
             "sum": str(total),
             "question": question,
             "answer": answer,
             "text": text,
+            "fill_zeros_applied": fill_zeros_applied,
+            "contains_held_out": contains_held_out,
+            "dataset_type": dataset_type,
         }
 
         return metadata
 
-    def _generate_term(self, digits: int) -> str:
-        min_value = 10 ** (digits - 1)
-        max_value = (10**digits) - 1
-
-        while True:
-            term = str(random.randint(min_value, max_value))
-            if self.apply_hold_out and self._has_hold_out_digits(term):
-                continue  # Reject term if it contains held-out digits in specified positions
-            else:
-                break
-        return term
-
-    def _has_hold_out_digits(self, term: str) -> bool:
-        """
-        Checks if the term contains any of the held-out digits in the specified positions.
-        Positions are counted from the right (least significant digit).
-        """
+    def _contains_held_out_digit(self, term: str) -> bool:
         term_reversed = term[::-1]
-        for pos in self.hold_out_positions:
+        for pos in self.held_out_config.positions:
             if pos - 1 < len(term_reversed):
                 digit = int(term_reversed[pos - 1])
-                if digit in self.hold_out_digits:
+                if digit in self.held_out_config.held_out_digits:
                     return True
         return False
 
-    def apply_transformations(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        # Placeholder for user-defined transformations
-        # In this implementation, we do not apply any additional transformations
+    def _filter_held_out_examples(
+        self, training_data: List[Dict[str, Any]]
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        training_data_clean = []
+        moved_examples = []
+        for example in training_data:
+            if example["contains_held_out"]:
+                # Move to test data
+                example["dataset_type"] = "test"
+                moved_examples.append(example)
+            else:
+                training_data_clean.append(example)
+        return training_data_clean, moved_examples
+
+    def apply_transformations(
+        self, data: Dict[str, List[Dict[str, Any]]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
         return data
