@@ -126,9 +126,9 @@ class AdditionDataGenerator(DataGenerator):
         total = sum(int(term) for term in terms)
 
         # Create question, answer, and text
-        question = " + ".join(terms)
-        answer = f"= {total}"
-        text = f"{question} {answer}"
+        question = " + ".join(terms) + " = "
+        answer = f"{total}"
+        text = f"{question}{answer}"
 
         # Build metadata
         metadata = {

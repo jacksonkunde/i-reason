@@ -70,7 +70,7 @@ def run():
         "--exporter",
         type=str,
         default="csv",
-        help="Type of exporter -- one of [hf (HuggingFace dataset), csv, json]",
+        help="Type of exporter -- one of [huggingface, csv, json]",
     )
     parser.add_argument(
         "--output_dir", type=str, default="./data", help="Path to output directory"
