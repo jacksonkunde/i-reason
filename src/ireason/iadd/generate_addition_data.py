@@ -30,7 +30,6 @@ def load_config(config_path: str) -> AdditionConfig:
 
     config = AdditionConfig(
         random_seed=config_dict["random_seed"],
-        equal_digit_distribution=config_dict.get("equal_digit_distribution", None),
         training_config=training_config,
         test_config=test_config,
         held_out_config=held_out_config,

@@ -76,14 +76,12 @@ class AdditionConfig:
 
     Attributes:
         random_seed (int): Seed for random number generation.
-        equal_digit_distribution (bool): Specifiy if the data distribution over the number of the digits should be uniform.
         training_config (DatasetConfig): Configuration for training data generation.
         test_config (DatasetConfig): Configuration for test data generation.
         held_out_config (HeldOutConfig): Configuration for held-out digits.
     """
 
     random_seed: int
-    equal_digit_distribution: Optional[bool]
     training_config: DatasetConfig
     test_config: DatasetConfig
     held_out_config: Optional[HeldOutConfig] = None
