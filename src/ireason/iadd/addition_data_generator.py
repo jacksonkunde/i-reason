@@ -134,7 +134,7 @@ class AdditionDataGenerator(DataGenerator):
                 )
                 data.append(example)
 
-        return data
+        return apply_transformations(data)
 
     def _generate_random(
         self,
