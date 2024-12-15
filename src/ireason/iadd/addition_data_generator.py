@@ -84,7 +84,7 @@ class AdditionDataGenerator(DataGenerator):
         if held_out_config and dataset_type == "train":
             data, _ = self._filter_held_out_examples(data, held_out_config)
 
-        return data
+        return self.apply_transformations(data)
 
     def _generate_dataset(
         self,
@@ -134,7 +134,7 @@ class AdditionDataGenerator(DataGenerator):
                 )
                 data.append(example)
 
-        return apply_transformations(data)
+        return data
 
     def _generate_random(
         self,
