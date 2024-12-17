@@ -24,7 +24,7 @@ class AdditionDataGenerator(DataGenerator):
         min_digits: int = 1,
         max_digits: int = 3,
         min_terms: int = 2,
-        max_terms: int = 5,
+        max_terms: int = 2,
         num_examples: int = 1000,
         generation_type: str = "random",
         fill_zeros: bool = False,
