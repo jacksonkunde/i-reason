@@ -39,6 +39,7 @@ class DatasetConfig:
         num_examples (Optional[int]): Number of examples to generate (ignored if generation_type is 'generate_all').
         generation_type (str): Type of generation ('generate_all' or 'random').
         fill_zeros (bool): Whether to fill numbers with leading zeros.
+        binary_mode (bool): Whether to do binary addition only.
     """
 
     min_digits: int
@@ -47,6 +48,7 @@ class DatasetConfig:
     max_terms: int
     generation_type: str  # 'generate_all' or 'random'
     fill_zeros: bool
+    binary_mode: bool
     num_examples: Optional[int] = (
         None  # Optional when generation_type is 'generate_all'
     )

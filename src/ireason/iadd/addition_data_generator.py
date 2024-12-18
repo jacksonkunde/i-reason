@@ -27,6 +27,7 @@ class AdditionDataGenerator(DataGenerator):
         max_terms: int = 2,
         num_examples: int = 1000,
         generation_type: str = "random",
+        binary_mode: bool = False,
         fill_zeros: bool = False,
         held_out_digits: Optional[list[int]] = None,
         held_out_positions: Optional[list[int]] = None,
@@ -64,6 +65,7 @@ class AdditionDataGenerator(DataGenerator):
             num_examples=num_examples,
             generation_type=generation_type,
             fill_zeros=fill_zeros,
+            binary_mode=binary_mode,
         )
 
         # Create the held-out configuration if applicable
@@ -118,9 +120,10 @@ class AdditionDataGenerator(DataGenerator):
         data = []
         min_num = 10 ** (dataset_config.min_digits - 1)
         max_num = 10**dataset_config.max_digits - 1
-        print(f"min: {min_num}, max: {max_num}")
-        numbers = [str(num) for num in range(min_num, max_num + 1)]
-        print()
+        if dataset_config.binary_mode:
+            numbers = [bin(num)[2:] for num in range(2**dataset_config.max_digits)]
+        else:
+            numbers = [str(num) for num in range(min_num, max_num + 1)]
 
         # Generate all possible combinations of numbers for each term count
         for num_terms in range(dataset_config.min_terms, dataset_config.max_terms + 1):
@@ -131,6 +134,7 @@ class AdditionDataGenerator(DataGenerator):
                     dataset_config.fill_zeros,
                     dataset_type,
                     held_out_config,
+                    binary_mode=dataset_config.binary_mode,
                 )
                 data.append(example)
 
@@ -152,12 +156,16 @@ class AdditionDataGenerator(DataGenerator):
                 dataset_config.min_digits, dataset_config.max_digits
             )
             for _ in range(num_terms):
-                term = self._generate_term(num_digits)
+                if dataset_config.binary_mode:
+                    term = "".join(random.choice("01") for _ in range(num_digits))
+                else:
+                    term = self._generate_term(num_digits)
                 terms.append(term)
             example = self._create_example(
                 terms,
                 dataset_config.fill_zeros,
                 dataset_type,
+                binary_mode=dataset_config.binary_mode,
                 held_out_config=held_out_config,
             )
             data.append(example)
@@ -175,6 +183,7 @@ class AdditionDataGenerator(DataGenerator):
         fill_zeros: bool,
         dataset_type: str,
         held_out_config: Optional[HeldOutConfig],
+        binary_mode: bool = False,
     ) -> Dict[str, Any]:
         # Apply fill zeros if specified
         fill_zeros_applied = False
@@ -192,18 +201,22 @@ class AdditionDataGenerator(DataGenerator):
         else:
             contains_held_out = False
 
-        # Sum the terms
-        total = sum(int(term) for term in terms)
+        if binary_mode:
+            total = sum(int(term, 2) for term in terms)
+            answer = f"{bin(total)[2:]}"
+            p_sum = bin(total)[2:]  # Converts the decimal total back to binary
+        else:
+            total = sum(int(term) for term in terms)
+            answer = f"{total}"
+            p_sum = (str(total),)
 
-        # Create question, answer, and text
         question = " + ".join(terms) + " = "
-        answer = f"{total}"
         text = f"{question}{answer}"
 
         # Build metadata
         metadata = {
             "terms": terms,
-            "sum": str(total),
+            "sum": p_sum,
             "question": question,
             "answer": answer,
             "text": text,
