@@ -121,7 +121,7 @@ class AdditionDataGenerator(DataGenerator):
         min_num = 10 ** (dataset_config.min_digits - 1)
         max_num = 10**dataset_config.max_digits - 1
         if dataset_config.binary_mode:
-            numbers = [bin(num)[2:] for num in range(2**dataset_config.max_digits)]
+            numbers = [bin(num)[2:] for num in range(min_num, max_num + 1)]
         else:
             numbers = [str(num) for num in range(min_num, max_num + 1)]
 
@@ -204,11 +204,12 @@ class AdditionDataGenerator(DataGenerator):
         if binary_mode:
             total = sum(int(term, 2) for term in terms)
             answer = f"{bin(total)[2:]}"
-            p_sum = bin(total)[2:]  # Converts the decimal total back to binary
+            answer = "0" * (max(len(term) for term in terms) - len(answer)) + answer
+            p_sum = answer
         else:
             total = sum(int(term) for term in terms)
             answer = f"{total}"
-            p_sum = (str(total),)
+            p_sum = str(total)
 
         question = " + ".join(terms) + " = "
         text = f"{question}{answer}"
